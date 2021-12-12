@@ -4,3 +4,205 @@ import pandas as pd
 
 df = pd.read_excel('Stocks.csv',sheet_name=None)
 print(df)
+#import libraries
+import yfinance as yf
+import pandas as pd 
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
+#import stock data
+startdate = '2016-01-11'
+enddate = '2021-01-11'
+
+#Top Finance companies in India 
+
+#Top Private Banks
+Hdfcbank = yf.download('HDFCBANK.NS',startdate,enddate)
+Icicibank = yf.download('ICICIBANK.NS',startdate,enddate)
+Kotakbank = yf.download('KOTAKBANK.NS',startdate,enddate)
+#Top Housing Finance
+Hdfclimited = yf.download('HDFC.NS',startdate,enddate)
+#Top NBFC's
+Bajaj_fin = yf.download('BAJFINANCE.NS',startdate,enddate)
+Bajaj_finserv = yf.download('BAJAJFINSV.NS',startdate,enddate)
+
+#Create a portfolio Equal weight performance
+for stock in (Hdfcbank,Icicibank,Kotakbank,Hdfclimited,Bajaj_fin,Bajaj_finserv):
+  stock['Normalizing Return'] = stock['Adj Close']/stock.iloc[0]['Adj Close'] 
+#Setting weight to the stocks 
+for stock,allocation in zip((Hdfcbank,Icicibank,Kotakbank,Hdfclimited,Bajaj_fin,Bajaj_finserv),[0.17,0.17,0.17,0.17,0.17,0.17,0.17]):
+    stock['Allocation'] = stock['Normalizing Return'] * allocation
+#Assigning the value of 1,00,000 to the portfolio 
+for stock in (Hdfcbank,Icicibank,Kotakbank,Hdfclimited,Bajaj_fin,Bajaj_finserv):
+    stock['Pos_value'] = stock['Allocation'] * 100000
+#Examine the value
+Hdfclimited.tail(3)
+#Create a list of portfolio value  Equal weight performance
+position_value = [Hdfcbank['Pos_value'],Icicibank['Pos_value'],Kotakbank['Pos_value'],Hdfclimited['Pos_value'],Bajaj_fin['Pos_value'],Bajaj_finserv['Pos_value']]
+
+#Concat the position of stocks 
+position_value = pd.concat(position_value,axis=1)
+
+#Name of the column
+position_value.columns = ['Hdfcbank','Icicibank','Kotakbank','Hdfclimited','Bajaj_fin','Bajaj_finserv']
+
+#Add a total for entire portfolio
+position_value['Total'] = position_value.sum(axis=1)
+position_value.head(5)
+
+#Plot the total position on chart
+position_value['Total'].plot(kind='area',figsize=(25,15),title='1 Lakhs Portfolio',color='orange')
+plt.grid(which="major", color='k', linestyle='-.', linewidth=0.5)
+plt.legend()
+
+#Individual Performance 
+position_value.drop('Total',axis=1).plot(figsize=(18,8),title='Individual Stock Performance')
+plt.grid(which="major", color='k', linestyle='-.', linewidth=0.5)
+
+# Portfolio Returns
+Cummilative_returns = ((position_value['Total'][-1]/position_value['Total'][0]))*100
+print ("Total returns in % from November 2016 to November 2021",Cummilative_returns)
+
+#Daily Return
+position_value['Daily return']= position_value['Total'].pct_change(1)
+position_value.tail()
+
+#Average daily return
+position_value['Daily return'].mean() 
+
+#Standard Deviation of stocks
+position_value['Daily return'].std()
+
+#Sharpe ratio
+sharpe_ratio = position_value['Daily return'].mean()/position_value['Daily return'].std()
+sharpe_ratio
+
+#Annualized sharpe ratio
+sharpe_ratio_a = (252 ** 0.5) * sharpe_ratio
+sharpe_ratio_a
+
+#stock returns
+stock = pd.concat([Hdfcbank['Pos_value'],Icicibank['Pos_value'],Kotakbank['Pos_value'],Hdfclimited['Pos_value'],Bajaj_fin['Pos_value'],Bajaj_finserv['Pos_value']],axis=1)
+stock.columns = ['Hdfcbank','Icicibank','Kotakbank','Hdfclimited','Bajaj_fin','Bajaj_finserv']
+stock_return = stock.pct_change(1)
+stock_return.tail()
+
+#Setting 10,000 diferent combination weights
+simulation = 10000
+all_weight = np.zeros((simulation,len(stock.columns)))
+all_weight
+#len(stock.columns)
+
+# Allocating space for portfolio calculation by creating returns, voltality & sharpe ration array
+returns_array = np.zeros(simulation)
+volatality_array = np.zeros(simulation)
+sharpe_ratio_array = np.zeros(simulation)
+
+# For replicating randomizer 
+import random
+random.seed(3)
+
+# Different randomizer 
+np.random.seed(3)
+
+for index in range(simulation):
+    #assign the stocks with random weights
+    number = np.array(np.random.random(6))
+    weights = number/np.sum(number)
+    
+    # Save the weights
+    all_weight[index, :] = weights
+ expected return
+    returns_array[index] = np.sum(stock_return.mean() * 252 * weights)
+    
+#expected voltality = square root(weights-Transposed * covariance matrix * weights)
+    volatality_array[index] = np.sqrt(np.dot(weights.T,np.dot(stock_return.cov()*252,weights)))
+    
+#Sharpe Ratio
+    sharpe_ratio_array[index] = returns_array[index]/volatality_array[index]
+    
+#Print all the weights
+print("All weight",all_weight)
+# Print first weight
+print("First Combination",all_weight[0])
+
+# Print all the sharpe ratios
+print("All the sharpe ratio",sharpe_ratio_array)
+# Print first sharpe ratio
+print("The first sharpe ratio",sharpe_ratio_array[4149])
+
+# Print the highest sharpe ratio
+print("The highest sharpe ratio is:",sharpe_ratio_array.max())
+
+#Find at what index highest sharpe ratio is situated
+index_max_sharpe = sharpe_ratio_array.argmax() 
+print("The locaion at which the highest Sharpe ratio is situated is at:",index_max_sharpe)
+
+# Print the Lowest sharpe ratio
+print("The Lowest sharpe ratio is:",sharpe_ratio_array.min())
+
+#Find at what index lowest sharpe ratio is situated
+index_min_sharpe = sharpe_ratio_array.argmin() 
+print("The locaion at which the lowest Sharpe ratio is situated is at:",index_min_sharpe)
+
+import pandas as pd 
+
+data = {'Company Name' : ['Hdfcbank', 'Icicibank', 'Kotakbank', 'Hdfclimited', 'Bajaj_fin',
+       'Bajaj_finserv'],
+        'Weight' :[0.35359415, 0.01047077, 0.04771625, 0.00187588, 0.46714682, 0.11919613]
+}
+
+df = pd.DataFrame(data, columns=['Company Name','Weight'])
+df.to_csv('/home/mihir/Desktop/Finance_project/Finance_stocks.csv')
+print(df)
+
+# settings weights according to highest sharpe ratio
+for stock,allocation in zip((Hdfcbank,Icicibank,Kotakbank,Hdfclimited,Bajaj_fin,Bajaj_finserv),[0.35359415, 0.01047077, 0.04771625, 0.00187588, 0.46714682, 0.11919613]):
+    stock['Allocation'] = stock['Normalizing Return'] * allocation
+#Assigning the value of 1,00,000 to the portfolio with highest sharpe ratio
+for stock in (Hdfcbank,Icicibank,Kotakbank,Hdfclimited,Bajaj_fin,Bajaj_finserv):
+    stock['Pos_value'] = stock['Allocation'] * 100000   
+#Create a list of portfolio value  Equal weight performance with highest sharpe ratio
+position_value = [Hdfcbank['Pos_value'],Icicibank['Pos_value'],Kotakbank['Pos_value'],Hdfclimited['Pos_value'],Bajaj_fin['Pos_value'],Bajaj_finserv['Pos_value']]
+
+#Concat the position of stocks 
+position_value = pd.concat(position_value,axis=1)
+
+#Name of the column
+position_value.columns = ['Hdfcbank','Icicibank','Kotakbank','Hdfclimited','Bajaj_fin','Bajaj_finserv']
+
+#Add a total for entire portfolio
+position_value['Total'] = position_value.sum(axis=1)
+position_value.tail(5)
+
+# Plot the total position on chart with highest sharpe ratio
+position_value['Total'].plot(kind='area',figsize=(30,20),title='1 Lakhs Portfolio',color='green')
+plt.grid(which="major", color='k', linestyle='-.', linewidth=0.5)
+plt.legend()
+
+#Individual Performance with highest sharpe ratio
+position_value.drop('Total',axis=1).plot(figsize=(18,8),title='Individual Stock Performance')
+plt.grid(which="major", color='k', linestyle='-.', linewidth=0.5)
+
+# Portfolio Returns with highest sharpe ratio
+Cummilative_returns = ((position_value['Total'][-1]/position_value['Total'][0]))*100
+print ("Total returns in % from November 2016 to November 2021",Cummilative_returns)
+
+#Daily Return for highest sharpe ratio
+position_value['Daily return']= position_value['Total'].pct_change(1)
+position_value.tail()
+
+#plot optimal portfolio combination
+max_sharpe_return = returns_array[index_max_sharpe]
+max_sharpe_volatility = volatality_array[index_max_sharpe]
+
+#Scatter Plot
+#Plot Heatmap
+plt.figure(figsize=(30,15))
+plt.scatter(volatality_array,returns_array,c=sharpe_ratio_array,cmap='viridis')
+plt.colorbar(label='Sharpe Ratio')
+plt.xlabel('Volatility')
+plt.ylabel('Return')
+
+#Add Red color dot for high sharpe_ratio
+plt.scatter(max_sharpe_volatility,max_sharpe_return,c='red',edgecolors='red')
