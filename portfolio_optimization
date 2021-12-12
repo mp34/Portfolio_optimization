@@ -1,0 +1,6 @@
+#read the excel file
+import xlrd
+import pandas as pd
+
+df = pd.read_excel('Stocks.csv',sheet_name=None)
+print(df)
